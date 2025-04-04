@@ -1,3 +1,4 @@
+# Llegeix insults de la cua de InsultProducer i els afegeix a la llista d'insults existents si no existien
 import redis
 # Connect to Redis
 client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)

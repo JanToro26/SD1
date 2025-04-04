@@ -1,3 +1,4 @@
+# Fa broadcast de la llista d'insults existents
 import redis
 import time
 # Connect to Redis

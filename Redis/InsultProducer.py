@@ -1,3 +1,4 @@
+# Genera insults (nous i repetits i els envia a una cua)
 import redis
 import time
 # Connect to Redis
