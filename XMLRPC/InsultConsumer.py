@@ -1,5 +1,6 @@
 from xmlrpc.server import SimpleXMLRPCServer
 from xmlrpc.server import SimpleXMLRPCRequestHandler
+import xmlrpc.client 
 import random
 
 class RequestHandler(SimpleXMLRPCRequestHandler):
@@ -7,10 +8,19 @@ class RequestHandler(SimpleXMLRPCRequestHandler):
 
 with SimpleXMLRPCServer(('localhost', 8000), requestHandler=RequestHandler) as server:
     server.register_introspection_functions()
-    insult_list=[]
+    broadcaster = xmlrpc.client.ServerProxy('http://localhost:8001')
+    
 
     def add_insult(insult):
-        insult_list.append(insult)
+        insult_list = []
+        insult_list= broadcaster.get_insults()
+
+        if insult not in insult_list:
+            broadcaster.add_insult(insult)
+            return f"L'insult {insult} s'ha afegit a la llista correctament"
+        else:
+            return f"L'insult {insult} ja està a la llista"
+
 
     server.register_function(add_insult,'add_insult') 
 

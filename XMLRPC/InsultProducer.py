@@ -1,9 +1,15 @@
 import xmlrpc.client 
 import random
+import time
 
-s = xmlrpc.client.ServerProxy('http://localhost:8000')
+insult_queue = xmlrpc.client.ServerProxy('http://localhost:8000')
 
-print(s.add_insult('janburro'))
-print(s.get_insults())
+insults = ["Burro", "Retrasat", "Gilipolles"]
 
-print(s.system.listMethods())
+
+while True:
+    insultRandom = random.choice(insults)
+    print(insult_queue.add_insult(insultRandom))
+    #channel.basic_publish(exchange='', routing_key='hello', body=insultRandom)
+    #print(" [x] Sent 'Hello World!'")
+    time.sleep(5)

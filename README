@@ -17,3 +17,4 @@ TODO:
     - PyRO: Remove introclient, introserver, observer, pyroclient, pyroserver, subject_client, subject. Implement TextProducer, InsultBroadcaster, InsultFilter, InsultConsumer, InsultProducer, InsultReceiver.
     - XMLRPC: Implement TextProducer, InsultBroadcaster, InsultFilter, InsultConsumer, InsultProducer, InsultReceiver.
     Delete Lab2 folder
+    - All: Do the getAllArticles fuction
