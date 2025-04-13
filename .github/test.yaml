@@ -2,15 +2,11 @@ name: CI Tests
 
 on:
   push:
-    paths:
-      - 'XMLRPC/**'
-      - 'tests/**'
-      - '.github/workflows/test.yaml'
+    branches:
+      - '**'  # Esto hace que el workflow se ejecute en cualquier push a cualquier rama
   pull_request:
-    paths:
-      - 'XMLRPC/**'
-      - 'tests/**'
-      - '.github/workflows/test.yaml'
+    branches:
+      - '**'  # Esto hace que el workflow se ejecute también en cualquier pull request
 
 jobs:
   run-tests:
