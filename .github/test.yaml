@@ -1,0 +1,41 @@
+name: CI Tests
+
+on:
+  push:
+    paths:
+      - 'XMLRPC/**'
+      - 'tests/**'
+      - '.github/workflows/test.yaml'
+  pull_request:
+    paths:
+      - 'XMLRPC/**'
+      - 'tests/**'
+      - '.github/workflows/test.yaml'
+
+jobs:
+  run-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12-dev"]
+    runs-on: ${{ matrix.os }}
+    name: Tests on Python ${{ matrix.python-version }} (${{ matrix.os }})
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+
+      - name: Run tests with coverage
+        run: |
+          pytest --cov= --cov-report=xml --cov-branch tests/
