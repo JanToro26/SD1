@@ -1,37 +1,37 @@
-#!/usr/bin/env python
-import pika, sys, os, redis
+# servidor_pyro.py
+import Pyro4
+import random
 
-def main():
-    client = redis.Redis(host='localhost', port=6379, db=0,
-    decode_responses=True)
-    insult_list = "insult_list"
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
-    channel = connection.channel()
+# Expose this class for remote use
+@Pyro4.expose
+class InsultService:
+    def __init__(self):
+        self.broadcaster = Pyro4.Proxy("PYRONAME:insult.broadcaster")
 
-    channel.queue_declare(queue='hello')
-
-    def callback(ch, method, properties, body):
-        insult = body.decode('utf-8')  # Convertir de bytes a string
-        cua = client.lrange(insult_list, 0, -1)  # Obtener la lista de Redis
-
-        if(insult in cua):
-            print(f"L'insult {insult} ja està a la llista")
+    def add_insult(self, insult):
+        insult_list = self.broadcaster.get_insults()
+        if insult not in insult_list:
+            self.broadcaster.add_insult(insult)
+            return f"L'insult {insult} s'ha afegit a la llista correctament"
         else:
-            print(f"L'insult {insult} no està a la llista")
-            client.lpush(insult_list, insult)
-        print(f" [x] Received {insult}")
+            return f"L'insult {insult} ja està a la llista"
 
-    channel.basic_consume(queue='hello', on_message_callback=callback, auto_ack=True)
+    def get_insults(self):
+        return self.broadcaster.get_insults()
 
-    print(' [*] Waiting for messages. To exit press CTRL+C')
-    channel.start_consuming()
+    def insult_me(self):
+        insults = self.broadcaster.get_insults()
+        if insults:
+            return random.choice(insults)
+        else:
+            return "No hi ha insults!"
 
-if __name__ == '__main__':
-    try:
-        main()
-    except KeyboardInterrupt:
-        print('Interrupted')
-        try:
-            sys.exit(0)
-        except SystemExit:
-            os._exit(0)
+# Inici del servidor Pyro
+if __name__ == "__main__":
+    Pyro4.config.REQUIRE_EXPOSE = True
+    daemon = Pyro4.Daemon()
+    ns = Pyro4.locateNS()
+    uri = daemon.register(InsultService)
+    ns.register("insult.consumer", uri)
+    #print("Servidor Pyro registrat com a 'insult.consumer'")
+    daemon.requestLoop()

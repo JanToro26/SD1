@@ -1,19 +1,20 @@
-#!/usr/bin/env python
-import pika
-import time
+import Pyro4
 import random
+import time
 
-connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='localhost'))
-channel = connection.channel()
+# Connexió al Name Server de Pyro4
+ns = Pyro4.locateNS(host='localhost')  # canvia 'localhost' per IP si cal
+uri = ns.lookup("insult.consumer")  # el nom registrat al Name Server
+
+# Obtenim el proxy remot
+insult_queue = Pyro4.Proxy(uri)
+
+# Insults a enviar
 insults = ["Burro", "Retrasat", "Gilipolles"]
-channel.queue_declare(queue='hello')
 
-channel.basic_publish(exchange='', routing_key='hello', body='Hello World!')
-print(" [x] Sent 'Hello World!'")
-
+# Bucle d'enviament
 while True:
     insultRandom = random.choice(insults)
-    channel.basic_publish(exchange='', routing_key='hello', body=insultRandom)
-    print(" [x] Sent 'Hello World!'")
+    print(insultRandom)
+    print(insult_queue.add_insult(insultRandom))  # Crida remota
     time.sleep(5)

@@ -1,16 +1,23 @@
-import xmlrpc.client 
+# XMLRPC/InsultProducer.py
+
+import xmlrpc.client
 import random
 import time
 
-insult_queue = xmlrpc.client.ServerProxy('http://localhost:8000')
+class InsultProducer:
+    def __init__(self, queue_url='http://localhost:8000'):
+        self.insult_queue = xmlrpc.client.ServerProxy(queue_url)
+        self.insults = ["Burro", "Retrasat", "Gilipolles"]
 
-insults = ["Burro", "Retrasat", "Gilipolles"]
+    def send_insult(self, insult=None):
+        # Si no se especifica insulto, elegimos uno aleatorio
+        insult = insult or random.choice(self.insults)
+        print(f"Sending insult: {insult}")
+        response = self.insult_queue.add_insult(insult)
+        print(f"Response: {response}")
+        return response
 
-
-while True:
-    insultRandom = random.choice(insults)
-    print(insultRandom)
-    print(insult_queue.add_insult(insultRandom))
-    #channel.basic_publish(exchange='', routing_key='hello', body=insultRandom)
-    #print(" [x] Sent 'Hello World!'")
-    time.sleep(5)
+    def run(self):
+        while True:
+            self.send_insult()
+            time.sleep(5)
