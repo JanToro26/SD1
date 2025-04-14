@@ -31,7 +31,7 @@ if __name__ == "__main__":
     Pyro4.config.REQUIRE_EXPOSE = True
     daemon = Pyro4.Daemon()
     ns = Pyro4.locateNS()
-    uri = daemon.register(InsultService)
+    uri = daemon.register(InsultService())
     ns.register("insult.consumer", uri)
     #print("Servidor Pyro registrat com a 'insult.consumer'")
     daemon.requestLoop()
