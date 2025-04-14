@@ -6,7 +6,9 @@ import os
 import sys
 import subprocess
 
-BASE_DIR = sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../pyro'))
+sys.path.insert(0, BASE_DIR)
+
 
 # ================================
 # Helpers
