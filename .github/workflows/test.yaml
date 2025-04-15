@@ -39,8 +39,10 @@ jobs:
 
               
       - name: Start Pyro4 Name Server
-        run: pyro4-ns &
-             sleep 10
+        run:
+          pkill pyro4-ns 
+          pyro4-ns &
+          sleep 15
 
 
       - name: Run tests with coverage
