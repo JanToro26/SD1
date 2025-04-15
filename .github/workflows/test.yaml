@@ -32,6 +32,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest pytest-cov
           pip install Pyro4==4.81
+      - name: Install system dependencies on macOS
+        if: runner.os == 'macOS'
+        run: |
+          brew install libffi
 
               
       - name: Start Pyro4 Name Server
