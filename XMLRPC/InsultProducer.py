@@ -10,7 +10,6 @@ class InsultProducer:
         self.insults = ["Burro", "Retrasat", "Gilipolles"]
 
     def send_insult(self, insult=None):
-        # Si no se especifica insulto, elegimos uno aleatorio
         insult = insult or random.choice(self.insults)
         print(f"Sending insult: {insult}")
         response = self.insult_queue.add_insult(insult)

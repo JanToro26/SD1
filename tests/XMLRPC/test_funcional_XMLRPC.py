@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from XMLRPC import InsultProducer, InsultConsumer, InsultBroadcaster, InsultFilter
 
 # ================================
-# Configuración base
+# Configuració base
 # ================================
 
 BROADCASTER_URL = "http://localhost:8001/RPC2"
@@ -43,8 +43,8 @@ def start_receiver():
     receiver.run()
 
 def start_filter():
-    filter_service = InsultFilter.run_server()
-    filter_service.run()
+    filter = InsultFilter.InsultFilter()
+    filter.run()
 
 def listen_to_broadcaster(duration=5):
     server = ServerProxy(BROADCASTER_URL)

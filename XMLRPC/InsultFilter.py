@@ -4,107 +4,86 @@ import threading
 import time
 import socket
 
-# ============================
-# Configuración inicial
-# ============================
+class InsultFilter:
+    def __init__(self, broadcaster_url='http://localhost:8001', host='localhost', port=8002):
+        self.host = host
+        self.port = port
+        self.broadcaster_url = broadcaster_url
 
-BROADCASTER_HOST = 'localhost'
-BROADCASTER_PORT = 8001
-BROADCASTER_URL = f'http://{BROADCASTER_HOST}:{BROADCASTER_PORT}/RPC2'
+        # Conexió al broadcaster
+        self.broadcaster = xmlrpc.client.ServerProxy(self.broadcaster_url)
 
-# Connexió al broadcaster
-broadcaster = xmlrpc.client.ServerProxy(BROADCASTER_URL)
+        # Llistes i variables locals 
+        self.insult_list = []
+        self.filtered_list = []
+        self.last_index = 0
+        self.lock = threading.Lock()    #Necessària per al sincronisme i que no es solapin els processos i peticions.
+    
 
-# Llistes locals
-insult_list = []
-filtered_list = []
-last_index = 0
-lock = threading.Lock()
+    #Mirar si el broadcaster està disponible
+    def wait_for_broadcaster(self, port=8001, host='localhost', timeout=10.0):
+        start_time = time.time()
+        while True:
+            try:
+                with socket.create_connection((host, port), timeout=0.5):
+                    print(f"✅ Broadcaster disponible en {host}:{port}")
+                    return
+            except OSError:
+                time.sleep(0.1)
+                if time.time() - start_time > timeout:
+                    raise TimeoutError(f"Timeout esperando al Broadcaster en {host}:{port}")
 
-# ============================
-# Utilidad: Esperar Broadcaster
-# ============================
+    def actualitzar_insults(self, max_duration=10):
+        """Actualiza la lista de insultos desde el Broadcaster por un tiempo máximo."""
+        self.wait_for_broadcaster()
+        
+        start_time = time.time()
+        
+        while time.time() - start_time < max_duration:  # Limitar la duración de la actualización
+            try:
+                new_insults, self.last_index = self.broadcaster.get_insults_since(self.last_index)
+                if new_insults:
+                    with self.lock:
+                        self.insult_list.extend(new_insults)
+                    print(f"[Actualitzat] Nous insults: {new_insults}")
+            except Exception as e:
+                print(f"⚠️ Error al actualitzar insults: {e}")
+            time.sleep(1)
 
-def wait_for_broadcaster(port=BROADCASTER_PORT, host='localhost', timeout=10.0):
-    start_time = time.time()
-    while True:
-        try:
-            with socket.create_connection((host, port), timeout=0.5):
-                print(f"✅ Broadcaster disponible en {host}:{port}")
-                return
-        except OSError:
-            time.sleep(0.1)
-            if time.time() - start_time > timeout:
-                raise TimeoutError(f"Timeout esperando al Broadcaster en {host}:{port}")
+        print("🛑 Fin de la actualización de insultos.")
+    
+    #Funció que filtra
+    def filtrar(self, text):
+        with self.lock:
+            insults = self.insult_list.copy()
 
-# ============================
-# ACTUALIZADOR EN SEGUNDO PLANO
-# ============================
+        words = text.split(" ")
+        for i, word in enumerate(words):
+            if word in insults:
+                words[i] = "CENSORED"
 
-def actualitzar_insults():
-    global last_index, insult_list
+        filtered_text = " ".join(words)
+        with self.lock:
+            self.filtered_list.append(filtered_text)
+        return filtered_text
 
-    # Esperamos activamente que el Broadcaster esté disponible
-    wait_for_broadcaster()
+    def get_all_filtered(self):
+        with self.lock:
+            return self.filtered_list
 
-    while True:
-        try:
-            nous_insults, last_index = broadcaster.get_insults_since(last_index)
-            if nous_insults:
-                with lock:
-                    insult_list.extend(nous_insults)
-                print(f"[Actualitzat] Nous insults: {nous_insults}")
-        except Exception as e:
-            print(f"⚠️ Error al actualitzar insults: {e}")
-        time.sleep(1)
+    def run(self):
+        # Inicia el thread d'actualització periòdica
+        threading.Thread(target=self.actualitzar_insults, daemon=True).start()
 
-# ============================
-# FUNCIÓN FILTRAR
-# ============================
+        class RequestHandler(SimpleXMLRPCRequestHandler):
+            rpc_paths = ('/RPC2',)
 
-def filtrar(text):
-    with lock:
-        insults = insult_list.copy()
+        with SimpleXMLRPCServer((self.host, self.port), requestHandler=RequestHandler, allow_none=True) as server:
+            server.register_introspection_functions()
 
-    paraules = text.split(" ")
-    for i, paraula in enumerate(paraules):
-        if paraula in insults:
-            paraules[i] = "CENSORED"
+            # Registrem les funcions del servidor
+            server.register_function(self.filtrar, 'filtrar')
+            server.register_function(self.get_all_filtered, 'get_all_filtered')
 
-    text_filtrat = " ".join(paraules)
-    with lock:
-        filtered_list.append(text_filtrat)
-    return text_filtrat
+            server.serve_forever()
 
-# ============================
-# FUNCIÓN RETORNAR TEXTOS FILTRADOS
-# ============================
-
-def get_all_filtered():
-    with lock:
-        return filtered_list
-
-# ============================
-# SERVIDOR XML-RPC
-# ============================
-
-class RequestHandler(SimpleXMLRPCRequestHandler):
-    rpc_paths = ('/RPC2',)
-
-def run_server():
-    with SimpleXMLRPCServer(("localhost", 8002), requestHandler=RequestHandler, allow_none=True) as server:
-        server.register_introspection_functions()
-
-        # Registramos funciones remotas
-        server.register_function(filtrar, 'filtrar')
-        server.register_function(get_all_filtered, 'get_all_filtered')
-
-        # Inicia el hilo de actualización
-        threading.Thread(target=actualitzar_insults, daemon=True).start()
-
-        print("✅ Servidor InsultFilter en marcha en puerto 8002")
-        server.serve_forever()
-
-# Permite que se pueda ejecutar como script directamente
-if __name__ == "__main__":
-    run_server()
