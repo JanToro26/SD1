@@ -55,7 +55,7 @@ def setup_services():
     processes.append(filter_process)
 
     # Pequeña espera para levantar servicios
-    time.sleep(10)
+    time.sleep(15)
 
     yield
 
