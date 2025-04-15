@@ -40,7 +40,7 @@ jobs:
               
       - name: Start Pyro4 Name Server
         run: |
-          pkill pyro4-ns 
+          pkill -f pyro4-ns || true
           pyro4-ns &
           sleep 15
 
