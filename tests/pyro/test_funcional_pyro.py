@@ -36,10 +36,10 @@ def connect_to(name):
 # ================================
 # Fixture de setup
 # ================================
-
+processes = []
 @pytest.fixture(scope="module", autouse=True)
 def setup_services():
-    processes = []
+
 
     # Iniciar los procesos
     broadcaster_process = Process(target=start_broadcaster)
@@ -115,6 +115,9 @@ def test_filter_service_filters_text():
     """Verifica que el servicio Filter censura correctamente los insultos usando Pyro4."""
 
     # Conectamos al Filter via Pyro
+    filter_process = Process(target=start_filter)
+    filter_process.start()
+    processes.append(filter_process)
     filter_client = connect_to("filter.service")
     broadcaster = connect_to("insult.broadcaster")
 
