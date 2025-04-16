@@ -4,10 +4,6 @@ import time
 import xmlrpc.client
 import random
 
-# ============================
-# CONFIGURACIÓ
-# ============================
-
 
 # Connexió al Name Server de Pyro4
 ns = Pyro4.locateNS(host='localhost')  # canvia 'localhost' per IP si cal
@@ -21,9 +17,7 @@ filtered_list = []
 last_index = 0
 lock = threading.Lock()
 
-# ============================
-# OBJECTE REMOT
-# ============================
+
 
 @Pyro4.expose
 class FilterService:
@@ -43,9 +37,6 @@ class FilterService:
         with lock:
             return filtered_list.copy()
 
-# ============================
-# ACTUALITZADOR EN SEGON PLA
-# ============================
 
 def actualitzar_insults():
     global last_index, insult_list
@@ -58,9 +49,7 @@ def actualitzar_insults():
             print(f"[Actualitzat] Nous insults: {nous_insults}")
         time.sleep(1)
 
-# ============================
-# ARRANCA EL SERVIDOR Pyro
-# ============================
+
 
 def main():
     threading.Thread(target=actualitzar_insults, daemon=True).start()

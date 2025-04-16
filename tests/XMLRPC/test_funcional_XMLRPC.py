@@ -6,7 +6,7 @@ import time
 from multiprocessing import Process
 from xmlrpc.client import ServerProxy
 
-# Agregamos al path el directorio raíz del proyecto
+# Ens movem pel projecte
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from XMLRPC import InsultProducer, InsultConsumer, InsultBroadcaster, InsultFilter
@@ -32,7 +32,7 @@ def wait_for_port(port, host='localhost', timeout=5.0):
         except OSError:
             time.sleep(0.1)
             if time.time() - start_time > timeout:
-                raise TimeoutError(f"Timeout esperando al puerto {port} en host {host}")
+                raise TimeoutError(f"Timeout esperant al port {port} en host {host}")
 
 def start_broadcaster():
     broadcaster = InsultBroadcaster.InsultBroadcaster()
@@ -56,7 +56,7 @@ def listen_to_broadcaster(duration=5):
         insults, new_index = server.get_insults_since(last_index)
 
         for insult in insults:
-            print(f"👂 Rebut nou insult: {insult}")
+            print(f"Rebut nou insult: {insult}")
             received_insults.append(insult)
 
         last_index = new_index
@@ -92,7 +92,7 @@ def setup_services():
 
     yield
 
-    # Terminamos procesos
+    # Llimpiem tots els processos
     for process in processes:
         process.terminate()
         process.join()
@@ -109,8 +109,8 @@ def test_producer_to_broadcaster():
     for insult in test_insults:
         response = producer.send_insult(insult)
         assert f"L'insult {insult} s'ha afegit a la llista correctament" in response or \
-               f"L'insult {insult} ja està a la llista" in response
-        print(f"✅ Enviado insulto '{insult}' al Receiver correctamente")
+               f"L'insult {insult} ja esta a la llista" in response
+        print(f"L'insult '{insult}' s'ha enviat al Receiver correctament")
 
     time.sleep(1)
 
@@ -118,48 +118,48 @@ def test_producer_to_broadcaster():
     insults_in_broadcaster = broadcaster_client.get_insults()
 
     for insult in test_insults:
-        assert insult in insults_in_broadcaster, f"❌ El insulto '{insult}' no se encontró en el Broadcaster"
-        print(f"✅ Insulto '{insult}' encontrado en el Broadcaster")
+        assert insult in insults_in_broadcaster, f"L'insult '{insult}' no s'ha trobat al broadcaster"
+        print(f"L'insult '{insult}' s'ha trobat al broadcaster")
 
 def test_listener_receives_new_insults():
-    """Verifica que el listener recibe insultos nuevos del Broadcaster."""
+    """Verifica que el listener rep insults nous del Broadcaster."""
     producer = InsultProducer.InsultProducer()
     test_insults = ["ListenerTest1", "ListenerTest2"]
 
     for insult in test_insults:
         producer.send_insult(insult)
-        print(f"🚀 Enviado insulto '{insult}' para listener")
+        print(f"Enviat l'insult '{insult}' al listener")
 
     received_insults = listen_to_broadcaster(duration=3)
 
     for insult in test_insults:
-        assert insult in received_insults, f"❌ El insulto '{insult}' no fue recibido por el listener"
-        print(f"✅ Listener recibió insulto '{insult}' correctamente")
+        assert insult in received_insults, f"L'insult '{insult}' no l'ha rebut listener"
+        print(f"El listener ha rebut l'insult '{insult}' correctament")
 
 def test_filter_service_filters_text():
-    """Verifica que el servicio Filter censura correctamente los insultos."""
+    """Verifica que el servei Filter censura correctament els insults."""
 
     producer = InsultProducer.InsultProducer()
-    test_insults = ["FiltreInsult", "puto"]  # Agregamos también 'puto'
+    test_insults = ["FiltreInsult", "puto"]  # Afegim insults al broadcaster
 
-    # Aseguramos que los insultos se envían
+    # Liu enviem al broadcaster per a que els guardi
     for insult in test_insults:
         producer.send_insult(insult)
-        print(f"🚀 Enviado insulto '{insult}' para el filtro")
+        print(f"Insult enviat '{insult}' al filtre")
 
-    time.sleep(2)  # Tiempo para que el filtro actualice sus insultos desde el Broadcaster
+    time.sleep(2)  # Ens esperem prudencialment per a que no es solapi o hi hagi errors
 
     filter_client = ServerProxy(FILTER_URL)
     test_texts = ["Genis puto amo", f"Jan FiltreInsult", f"Puto FiltreInsult"]
 
     for text in test_texts:
         filtered_text = filter_client.filtrar(text)
-        print(f"📝 Texto original: '{text}' ➡️ Filtrado: '{filtered_text}'")
-        assert "CENSORED" in filtered_text, f"❌ El texto '{text}' no fue filtrado correctamente"
+        print(f"Text original: '{text}' ➡️ Filtrat: '{filtered_text}'")
+        assert "CENSORED" in filtered_text, f"El text '{text}' no s'ha filtrat correctament"
 
-    # Verificamos que el filtro almacena los textos filtrados
+    # Verifiquem que el text es guarda en el filter com una "caché"
     filtered_results = filter_client.get_all_filtered()
     for original in test_texts:
-        assert any("CENSORED" in result for result in filtered_results), f"❌ No se encontró texto censurado en los resultados filtrados"
+        assert any("CENSORED" in result for result in filtered_results), f"No s'ha trobat el text censurat a la llista"
 
-    print(f"✅ Textos filtrados almacenados correctamente")
+    print(f"Textos filtrats estan guardats correctament")

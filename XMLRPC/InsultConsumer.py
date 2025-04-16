@@ -24,7 +24,7 @@ class InsultConsumer:
     def insult_me(self):
         insult_list = self.broadcaster.get_insults()
         if not insult_list:
-            return "No insults available"
+            return "Encara no hi ha insults a la llista"
         return random.choice(insult_list)
 
     def run(self):
@@ -37,6 +37,4 @@ class InsultConsumer:
             server.register_function(self.add_insult, 'add_insult')
             server.register_function(self.get_insults, 'get_insults')
             server.register_function(self.insult_me, 'insult_me')
-
-            print(f"InsultReceiver running on {self.host}:{self.port}")
             server.serve_forever()

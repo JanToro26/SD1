@@ -20,26 +20,27 @@ class InsultFilter:
         self.lock = threading.Lock()    #Necessària per al sincronisme i que no es solapin els processos i peticions.
     
 
-    #Mirar si el broadcaster està disponible
+    # funció bàsica per als testos que un no s'inicie antes que l'altre i doni errors
     def wait_for_broadcaster(self, port=8001, host='localhost', timeout=10.0):
         start_time = time.time()
         while True:
             try:
                 with socket.create_connection((host, port), timeout=0.5):
-                    print(f"✅ Broadcaster disponible en {host}:{port}")
+                    print(f"Broadcaster disponible a {host}:{port}")
                     return
             except OSError:
                 time.sleep(0.1)
                 if time.time() - start_time > timeout:
-                    raise TimeoutError(f"Timeout esperando al Broadcaster en {host}:{port}")
+                    raise TimeoutError(f"Timeout esperant el Broadcaster en {host}:{port}")
 
     def actualitzar_insults(self, max_duration=10):
-        """Actualiza la lista de insultos desde el Broadcaster por un tiempo máximo."""
+        """Actualiza la llista d'insults desde el Broadcaster per un temps màxim."""
         self.wait_for_broadcaster()
         
         start_time = time.time()
         
-        while time.time() - start_time < max_duration:  # Limitar la duración de la actualización
+        while time.time() - start_time < max_duration:  # Limitar la duració de l'actualització
+            #per a que no és quedi molta estona amb el semàfor
             try:
                 new_insults, self.last_index = self.broadcaster.get_insults_since(self.last_index)
                 if new_insults:
@@ -50,7 +51,7 @@ class InsultFilter:
                 print(f"⚠️ Error al actualitzar insults: {e}")
             time.sleep(1)
 
-        print("🛑 Fin de la actualización de insultos.")
+        print("Actualització periòdica d'insults acabada")
     
     #Funció que filtra
     def filtrar(self, text):

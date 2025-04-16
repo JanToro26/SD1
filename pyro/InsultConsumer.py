@@ -2,7 +2,6 @@
 import Pyro4
 import random
 
-# Expose this class for remote use
 @Pyro4.expose
 class InsultService:
     def __init__(self):

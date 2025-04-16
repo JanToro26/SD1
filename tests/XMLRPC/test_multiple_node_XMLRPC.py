@@ -19,7 +19,7 @@ from XMLRPC import InsultProducer, InsultConsumer, InsultBroadcaster, InsultFilt
 
 BROADCASTER_URL = "http://localhost:8001/RPC2"
 FILTER_URL = "http://localhost:8002/RPC2"
-REQUESTS = 500          #Mantenim estàtic ja que no és el que ens interesa, podria ser major o menor
+REQUESTS = 500              #Mantenim estàtic ja que no és el que ens interesa, podria ser major o menor
 NODE_COUNTS = [1, 2, 3]     #Fixem el número de nodes que tindrem
 
 results = {
@@ -51,7 +51,7 @@ def wait_for_port(port, host='localhost', timeout=10.0):
         except OSError:
             time.sleep(0.1)
             if time.time() - start_time > timeout:
-                raise TimeoutError(f"Timeout esperando al puerto {port} en host {host}")
+                raise TimeoutError(f"Timeout esperant al port {port} en host {host}")
 
 #Mateixes 3 funcion d'inicialització
 def start_broadcaster():

@@ -30,7 +30,7 @@ def wait_for_port(port, host='localhost', timeout=10.0):
         except OSError:
             time.sleep(0.1)
             if time.time() - start_time > timeout:
-                raise TimeoutError(f"Timeout esperando al puerto {port} en host {host}")
+                raise TimeoutError(f"Timeout esperant al port {port} en host {host}")
 
 #Execucció del servei broadcaster
 def start_broadcaster():
@@ -78,7 +78,7 @@ def filter_task(i):
 #Funció per exportar-ho a un txt per a poder fer les gràfiques
 def export_results_txt(results):
     with open('single_node_performance_results_XMLRPC.txt', 'w') as f:
-        f.write("Número de peticiones\tTemps InsultService (s)\tTempsFilterService (s)\n")
+        f.write("Número de peticions\tTemps InsultService (s)\tTempsFilterService (s)\n")
         for i in range(len(results['requests'])):
             f.write(f"{results['requests'][i]}\t{results['InsultService'][i]:.4f}\t{results['FilterService'][i]:.4f}\n")
 

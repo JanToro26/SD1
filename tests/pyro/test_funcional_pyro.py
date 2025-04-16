@@ -15,17 +15,14 @@ sys.path.insert(0, BASE_DIR)
 
 def start_broadcaster():
     path = os.path.join(BASE_DIR, "InsultBroadcaster.py")
-    print(f"Starting Broadcaster at: {path}")
     subprocess.Popen(["python3", path])
 
 def start_receiver():
     path = os.path.join(BASE_DIR, "InsultConsumer.py")
-    print(f"Starting Receiver at: {path}")
     subprocess.Popen(["python3", path])
 
 def start_filter():
     path = os.path.join(BASE_DIR, "InsultFilter.py")
-    print(f"Starting Filter at: {path}")
     subprocess.Popen(["python3", path])
 
 def connect_to(name):
@@ -50,16 +47,16 @@ def setup_services():
     receiver_process.start()
     processes.append(receiver_process)
 
-    filter_process = Process(target=start_filter)
-    filter_process.start()
-    processes.append(filter_process)
+    #filter_process = Process(target=start_filter)
+    #filter_process.start()
+    #processes.append(filter_process)
 
-    # Pequeña espera para levantar servicios
+    # Temps prudencial per a que no hagi errors
     time.sleep(5)
 
     yield
 
-    # Terminamos los procesos después de las pruebas
+    # Llimpiem tots els processos
     for process in processes:
         process.terminate()
         process.join()
@@ -70,7 +67,6 @@ def setup_services():
 
 def test_producer_to_broadcaster():
     """Verifica Producer → Consumer → Broadcaster con Pyro4."""
-    # Conectamos al receiver y broadcaster via Pyro
     receiver = connect_to("insult.consumer")
     broadcaster = connect_to("insult.broadcaster")
 
@@ -79,19 +75,18 @@ def test_producer_to_broadcaster():
     for insult in test_insults:
         response = receiver.add_insult(insult)
         assert insult in response
-        print(f"✅ Enviado insulto '{insult}' al Receiver correctamente")
+        print(f"Insult '{insult}' enviat al Receiver correctament")
 
-    time.sleep(1)  # Espera a que se propague
+    time.sleep(1)  
 
     insults_in_broadcaster = broadcaster.get_insults()
 
     for insult in test_insults:
-        assert insult in insults_in_broadcaster, f"❌ El insulto '{insult}' no se encontró en el Broadcaster"
-        print(f"✅ Insulto '{insult}' encontrado en el Broadcaster")
+        assert insult in insults_in_broadcaster, f"L'insulto '{insult}' no s'ha trobat al broadcaster"
+        print(f"L'insulto '{insult}' trobat al Broadcaster")
 
 def test_listener_receives_new_insults():
-    """Verifica que el listener recibe insultos nuevos del Broadcaster."""
-    # Conectamos al receiver y broadcaster via Pyro
+    """Verifica que el listener rep els insults nous del Broadcaster."""
     receiver = connect_to("insult.consumer")
     broadcaster = connect_to("insult.broadcaster")
 
@@ -99,36 +94,33 @@ def test_listener_receives_new_insults():
 
     for insult in test_insults:
         receiver.add_insult(insult)
-        print(f"🚀 Enviado insulto '{insult}' para listener")
+        print(f"L'insult '{insult}' s'ha enviat al listener")
 
-    # Esperamos un poco para que el receptor reciba los insultos
     time.sleep(1)
 
-    # Recuperamos los insultos desde el broadcaster
     insults_in_broadcaster = broadcaster.get_insults()
 
     for insult in test_insults:
-        assert insult in insults_in_broadcaster, f"❌ El insulto '{insult}' no fue recibido por el listener"
-        print(f"✅ Listener recibió insulto '{insult}' correctamente")
+        assert insult in insults_in_broadcaster, f"L'insult '{insult}' no l'ha rebut el filter"
+        print(f"El listener ha rebut l'insult '{insult}' correctament")
 
 def test_filter_service_filters_text():
-    """Verifica que el servicio Filter censura correctamente los insultos usando Pyro4."""
+    """Verifica que el servei Filter censura correctament els insults usant Pyro4."""
 
-    # Conectamos al Filter via Pyro
     filter_process = Process(target=start_filter)
     filter_process.start()
     processes.append(filter_process)
+    time.sleep(5)
     filter_client = connect_to("filter.service")
     broadcaster = connect_to("insult.broadcaster")
 
-    test_insults = ["FiltreInsult", "puto"]  # Agregamos también 'puto'
+    test_insults = ["FiltreInsult", "puto"]  
 
-    # Aseguramos que los insultos se envían
     for insult in test_insults:
         broadcaster.add_insult(insult)
-        print(f"🚀 Enviado insulto '{insult}' para el filtro")
+        print(f"Enviant l'insult '{insult}' para el filtre")
 
-    # Esperamos que el filtro actualice sus insultos
+
     time.sleep(2)
 
     test_texts = ["Genis puto amo", f"Jan FiltreInsult", f"Puto FiltreInsult"]
@@ -137,12 +129,11 @@ def test_filter_service_filters_text():
     for text in test_texts:
         filtered_text = filter_client.filtrar(text)
         filtered_texts.append(filtered_text)
-        print(f"📝 Texto original: '{text}' ➡️ Filtrado: '{filtered_text}'")
-        assert "CENSORED" in filtered_text, f"❌ El texto '{text}' no fue filtrado correctamente"
+        print(f"Text original: '{text}' ➡️ Filtrat: '{filtered_text}'")
+        assert "CENSORED" in filtered_text, f"El text '{text}' no s'ha filtrat correctament"
 
-    # Verificamos que el filtro almacena los textos filtrados
     filtered_results = filter_client.get_all_filtered()
     for original in test_texts:
-        assert any("CENSORED" in result for result in filtered_results), f"❌ No se encontró texto censurado en los resultados filtrados"
+        assert any("CENSORED" in result for result in filtered_results), f"No s'ha trobat text censurat en els resultats filtrats"
 
-    print(f"✅ Textos filtrados almacenados correctamente")
+    print(f"Texts filtrats guardats són correctes")
