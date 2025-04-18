@@ -94,10 +94,10 @@ def run_static_scaling_test():
     for num_nodes in NODE_COUNTS:
         processes = []
 
-        # Broadcaster únic ja que no l'hem de testejar en aquest cas
-        broadcaster_process = Process(target=start_broadcaster)
-        broadcaster_process.start()
-        processes.append(broadcaster_process)
+        for _ in range(num_nodes): 
+            broadcaster_process = Process(target=start_broadcaster)
+            broadcaster_process.start()
+            processes.append(broadcaster_process)
         wait_for_port(8001)
 
         #X recievers

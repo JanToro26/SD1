@@ -101,10 +101,10 @@ def run_test():
         processes = []
 
         # Iniciar el broadcaster
-        broadcaster_process = Process(target=start_broadcaster)
-        broadcaster_process.start()
-        processes.append(broadcaster_process)
-        time.sleep(10)
+        #broadcaster_process = Process(target=start_broadcaster)
+        #broadcaster_process.start()
+        #processes.append(broadcaster_process)
+        #time.sleep(10)
         # Iniciar els "receivers"
         #for _ in range(n_nodes):
         #    receiver_process = Process(target=start_receiver)
@@ -118,6 +118,8 @@ def run_test():
         #   processes.append(filter_process)
 
         # Crear instàncies del servei InsultService de manera dinàmica per a cada node
+        for i in range(n_nodes):
+            start_service_with_name(f"insult.broadcaster{i+1}", "InsultBroadcaster.py")
         for i in range(n_nodes):
             start_service_with_name(f"insult.consumer{i+1}", "InsultConsumer.py")
 
