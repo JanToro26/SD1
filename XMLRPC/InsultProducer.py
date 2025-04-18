@@ -20,3 +20,7 @@ class InsultProducer:
         while True:
             self.send_insult()
             time.sleep(5)
+
+if __name__ == "__main__":
+    broadcaster = InsultProducer()
+    broadcaster.run()

@@ -47,9 +47,9 @@ def setup_services():
     receiver_process.start()
     processes.append(receiver_process)
 
-    #filter_process = Process(target=start_filter)
-    #filter_process.start()
-    #processes.append(filter_process)
+    filter_process = Process(target=start_filter)
+    filter_process.start()
+    processes.append(filter_process)
 
     # Temps prudencial per a que no hagi errors
     time.sleep(5)
@@ -88,6 +88,7 @@ def test_producer_to_broadcaster():
 def test_listener_receives_new_insults():
     """Verifica que el listener rep els insults nous del Broadcaster."""
     receiver = connect_to("insult.consumer")
+    insultFilter = connect_to("filter.service")
     broadcaster = connect_to("insult.broadcaster")
 
     test_insults = ["ListenerTest1", "ListenerTest2"]
@@ -98,10 +99,10 @@ def test_listener_receives_new_insults():
 
     time.sleep(1)
 
-    insults_in_broadcaster = broadcaster.get_insults()
+    insults_in_filter = insultFilter.get_all_insults()
 
     for insult in test_insults:
-        assert insult in insults_in_broadcaster, f"L'insult '{insult}' no l'ha rebut el filter"
+        assert insult in insults_in_filter, f"L'insult '{insult}' no l'ha rebut el filter"
         print(f"El listener ha rebut l'insult '{insult}' correctament")
 
 def test_filter_service_filters_text():

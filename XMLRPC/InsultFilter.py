@@ -13,14 +13,12 @@ class InsultFilter:
         # Conexió al broadcaster
         self.broadcaster = xmlrpc.client.ServerProxy(self.broadcaster_url)
 
-        # Llistes i variables locals 
+        # Llistes i variables locals
         self.insult_list = []
         self.filtered_list = []
-        self.last_index = 0
-        self.lock = threading.Lock()    #Necessària per al sincronisme i que no es solapin els processos i peticions.
-    
+        self.lock = threading.Lock()    # Necessària per al sincronisme
 
-    # funció bàsica per als testos que un no s'inicie antes que l'altre i doni errors
+    # Sincronización para esperar a que el broadcaster esté disponible
     def wait_for_broadcaster(self, port=8001, host='localhost', timeout=10.0):
         start_time = time.time()
         while True:
@@ -31,29 +29,14 @@ class InsultFilter:
             except OSError:
                 time.sleep(0.1)
                 if time.time() - start_time > timeout:
-                    raise TimeoutError(f"Timeout esperant el Broadcaster en {host}:{port}")
+                    raise TimeoutError(f"Timeout esperant al Broadcaster en {host}:{port}")
 
-    def actualitzar_insults(self, max_duration=10):
-        """Actualiza la llista d'insults desde el Broadcaster per un temps màxim."""
-        self.wait_for_broadcaster()
-        
-        start_time = time.time()
-        
-        while time.time() - start_time < max_duration:  # Limitar la duració de l'actualització
-            #per a que no és quedi molta estona amb el semàfor
-            try:
-                new_insults, self.last_index = self.broadcaster.get_insults_since(self.last_index)
-                if new_insults:
-                    with self.lock:
-                        self.insult_list.extend(new_insults)
-                    print(f"[Actualitzat] Nous insults: {new_insults}")
-            except Exception as e:
-                print(f"⚠️ Error al actualitzar insults: {e}")
-            time.sleep(1)
+    def notify(self, insult):
+        with self.lock:
+            self.insult_list.append(insult)
+        print(f"[Notificació rebuda] Nou insult: {insult} - Insults actuals: {self.insult_list}")
+        return f"Insult rebut: {insult}"
 
-        print("Actualització periòdica d'insults acabada")
-    
-    #Funció que filtra
     def filtrar(self, text):
         with self.lock:
             insults = self.insult_list.copy()
@@ -71,20 +54,36 @@ class InsultFilter:
     def get_all_filtered(self):
         with self.lock:
             return self.filtered_list
+    
+    def get_all_insults(self):
+        with self.lock:
+            return self.insult_list
 
     def run(self):
-        # Inicia el thread d'actualització periòdica
-        threading.Thread(target=self.actualitzar_insults, daemon=True).start()
+        # Construir l'URL públic d'aquest filtre
+        callback_url = f'http://{self.host}:{self.port}'
 
+        # Subscriure al broadcaster
+        try:
+            self.broadcaster.subscribe(callback_url)
+            print(f"Subscrits al broadcaster com a: {callback_url}")
+        except Exception as e:
+            print(f"Error al subscriure's al broadcaster: {e}")
+        
         class RequestHandler(SimpleXMLRPCRequestHandler):
             rpc_paths = ('/RPC2',)
 
         with SimpleXMLRPCServer((self.host, self.port), requestHandler=RequestHandler, allow_none=True) as server:
             server.register_introspection_functions()
 
-            # Registrem les funcions del servidor
+            # Registrar las funciones del servidor
             server.register_function(self.filtrar, 'filtrar')
             server.register_function(self.get_all_filtered, 'get_all_filtered')
+            server.register_function(self.notify, 'notify')
+            server.register_function(self.get_all_insults, 'get_all_insults')
 
             server.serve_forever()
 
+if __name__ == "__main__":
+    broadcaster = InsultFilter()
+    broadcaster.run()

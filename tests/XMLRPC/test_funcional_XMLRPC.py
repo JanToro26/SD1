@@ -33,6 +33,7 @@ def wait_for_port(port, host='localhost', timeout=5.0):
             time.sleep(0.1)
             if time.time() - start_time > timeout:
                 raise TimeoutError(f"Timeout esperant al port {port} en host {host}")
+            
 
 def start_broadcaster():
     broadcaster = InsultBroadcaster.InsultBroadcaster()
@@ -45,24 +46,6 @@ def start_receiver():
 def start_filter():
     filter = InsultFilter.InsultFilter()
     filter.run()
-
-def listen_to_broadcaster(duration=5):
-    server = ServerProxy(BROADCASTER_URL)
-    last_index = 0
-    received_insults = []
-
-    start_time = time.time()
-    while time.time() - start_time < duration:
-        insults, new_index = server.get_insults_since(last_index)
-
-        for insult in insults:
-            print(f"Rebut nou insult: {insult}")
-            received_insults.append(insult)
-
-        last_index = new_index
-        time.sleep(1)
-
-    return received_insults
 
 # ================================
 # Fixture de setup
@@ -122,18 +105,24 @@ def test_producer_to_broadcaster():
         print(f"L'insult '{insult}' s'ha trobat al broadcaster")
 
 def test_listener_receives_new_insults():
-    """Verifica que el listener rep insults nous del Broadcaster."""
+    """Verifica que el listener rep insults nous del Broadcaster, mitjançant notificacions."""
     producer = InsultProducer.InsultProducer()
     test_insults = ["ListenerTest1", "ListenerTest2"]
 
     for insult in test_insults:
         producer.send_insult(insult)
+        time.sleep(5)
         print(f"Enviat l'insult '{insult}' al listener")
 
-    received_insults = listen_to_broadcaster(duration=3)
+    # Esperem un poc a que els insults siguin notificats als filters
+    time.sleep(2)
 
+    filter_client = ServerProxy(FILTER_URL)
+    received_insults = filter_client.get_all_insults()
+    print(received_insults)
+    time.sleep(5)
     for insult in test_insults:
-        assert insult in received_insults, f"L'insult '{insult}' no l'ha rebut listener"
+        assert any(insult in result for result in received_insults), f"L'insult '{insult}' no l'ha rebut listener"
         print(f"El listener ha rebut l'insult '{insult}' correctament")
 
 def test_filter_service_filters_text():

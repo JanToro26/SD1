@@ -21,6 +21,8 @@ lock = threading.Lock()
 
 @Pyro4.expose
 class FilterService:
+    def __init__(self):
+        pass
     def filtrar(self, text):
         with lock:
             insults = insult_list.copy()
@@ -36,28 +38,24 @@ class FilterService:
     def get_all_filtered(self):
         with lock:
             return filtered_list.copy()
-
-
-def actualitzar_insults():
-    global last_index, insult_list
     
-    while True:
-        nous_insults, last_index = broadcaster.get_insults_since(last_index)
-        if nous_insults:
-            with lock:
-                insult_list.extend(nous_insults)
-            print(f"[Actualitzat] Nous insults: {nous_insults}")
-        time.sleep(1)
-
-
+    def get_all_insults(self):
+        with lock:
+            return insult_list
+    
+    def notify(self, insult):
+        with lock:
+            insult_list.append(insult)
 
 def main():
-    threading.Thread(target=actualitzar_insults, daemon=True).start()
+    filter_service = FilterService()
+    
 
     daemon = Pyro4.Daemon()
     ns = Pyro4.locateNS()
-    uri = daemon.register(FilterService())
+    uri = daemon.register(filter_service)
     ns.register("filter.service", uri)
+    broadcaster.subscribe(filter_service)
     daemon.requestLoop()
 
 if __name__ == "__main__":

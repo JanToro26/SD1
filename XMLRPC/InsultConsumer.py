@@ -38,3 +38,6 @@ class InsultConsumer:
             server.register_function(self.get_insults, 'get_insults')
             server.register_function(self.insult_me, 'insult_me')
             server.serve_forever()
+if __name__ == "__main__":
+    broadcaster = InsultConsumer()
+    broadcaster.run()
