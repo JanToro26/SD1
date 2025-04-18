@@ -1,4 +1,4 @@
 Número de nodes	Temps InsultService (s)	Speedup InsultService	Temps FilterService (s)	Speedup FilterService
-1	            1.1723	                1.00	                1.3062	                1.00
-2	            3.2007	                0.37	                2.7292	                0.48
-3	            4.2574	                0.28	                1.5216	                0.86
+1	            0.9936	                1.00	                1.0692	                1.00
+2	            1.1054	                0.90	                1.0384                  1.03
+3	            1.4142	                0.70	                1.0708	                1.00

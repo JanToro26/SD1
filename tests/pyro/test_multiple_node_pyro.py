@@ -11,7 +11,7 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../pyro')
 
 # Configuracions bàsiques del test
 REQUESTS = 500
-NODE_COUNTS = [1, 2, 3]
+NODE_COUNTS = [1, 2, 3]  # Nombre de nodes per cada execució del test
 
 results = {
     'nodes': [],
@@ -39,10 +39,15 @@ def start_producer():
     path = os.path.join(BASE_DIR, "InsultProducer.py")
     subprocess.Popen(["python3", path])
 
+def start_service_with_name(name, service_script):
+    """Aquesta funció inicia un servei Pyro amb un nom específic per a cada iteració del test"""
+    path = os.path.join(BASE_DIR, service_script)
+    subprocess.Popen(["python3", path, name])
+
 def connect_to(name):
     ns = Pyro4.locateNS()  
     uri = ns.lookup(name)  
-    return Pyro4.Proxy(uri)  
+    return Pyro4.Proxy(uri)
 
 # ================================
 # Funció principal del test
@@ -57,7 +62,6 @@ def stress_test(task_function, num_requests):
     return duration
 
 def producer_task(i):
-   
     producer = connect_to("insult.producer")  
     insult = f"StressInsult{i}"
     response = producer.send_insult(insult)
@@ -68,9 +72,8 @@ def filter_task(i):
     filtered_text = filter_client.filtrar(text)
 
 # ================================
-# Funcio que ens dona el txt amb els resultats
+# Funció per exportar els resultats a un arxiu
 # ================================
-
 
 def export_results_txt(results):
     initial_insult_time = results['InsultService_time'][0]
@@ -97,41 +100,44 @@ def run_test():
         
         processes = []
 
-        # Broadcaster és un solament
+        # Iniciar el broadcaster
         broadcaster_process = Process(target=start_broadcaster)
         broadcaster_process.start()
         processes.append(broadcaster_process)
+        time.sleep(10)
+        # Iniciar els "receivers"
+        #for _ in range(n_nodes):
+        #    receiver_process = Process(target=start_receiver)
+        #    receiver_process.start()
+        #    processes.append(receiver_process)
 
-        for _ in range(n_nodes):
-            receiver_process = Process(target=start_receiver)
-            receiver_process.start()
-            processes.append(receiver_process)
+        # Iniciar els "filters"
+        #for _ in range(n_nodes):
+        #    filter_process = Process(target=start_filter)
+        #    filter_process.start()
+        #   processes.append(filter_process)
 
-        for _ in range(n_nodes):
-            filter_process = Process(target=start_filter)
-            filter_process.start()
-            processes.append(filter_process)
+        # Crear instàncies del servei InsultService de manera dinàmica per a cada node
+        for i in range(n_nodes):
+            start_service_with_name(f"insult.consumer{i+1}", "InsultConsumer.py")
 
-        # Preparem insult inicial
+        for i in range(n_nodes):
+            start_service_with_name(f"filter.service{i+1}", "InsultFilter.py")
+
+        # Iniciar el productor
         producer_process = Process(target=start_producer)
         producer_process.start()
         processes.append(producer_process)
 
-        # Temps prudencial per no causar problemes
+        # Temps prudencial per evitar errors en la connexió
         time.sleep(5)
 
-
+        # Insult inicial per començar el test
         producer = connect_to("insult.producer")
         producer.send_insult("StressInsult")
         time.sleep(1)
 
-        #Fem el test de les 500 peticions per als 2 serveis.
-        #Les peticions es faràn seqüencialment
-        # 1era petició -> 1er node
-        # 2na petició -> 2n node
-        # 3era petició -> 3er node
-        #Succesivament.....
-
+        # Test de les 500 peticions
         insult_service_time = stress_test(producer_task, REQUESTS)
         filter_service_time = stress_test(filter_task, REQUESTS)
 
@@ -139,11 +145,11 @@ def run_test():
         results['InsultService_time'].append(insult_service_time)
         results['FilterService_time'].append(filter_service_time)
 
-        # Matar tots els processos
+        # Finalitzar els processos
         for process in processes:
             process.terminate()
             process.join()
-        
+
     export_results_txt(results)
 
 if __name__ == "__main__":
