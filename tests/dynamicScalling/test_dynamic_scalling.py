@@ -8,15 +8,13 @@ import subprocess
 from xmlrpc.client import ServerProxy
 
 # Configuración del path
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../dynamicScalling'))
 from dynamicScalling import InsultProducer, InsultConsumer, InsultBroadcaster, InsultFilter
 
 FILTER_URL = "http://localhost:8002/RPC2"
 
-# Configuraciones básicas del test
-REQUESTS = 500  # El número de peticiones iniciales
-MAX_REQUESTS = 2000  # Número máximo de peticiones a enviar
-INCREMENT = 500  # Incremento en el número de peticiones
+N_REQUESTS = [500, 1000, 2000, 5000, 10000, 500]  # Peticiones de prueba
 MAX_NODES = 10  # Número máximo de nodos a utilizar
 
 results = {
@@ -36,24 +34,23 @@ results = {
 
 def start_broadcaster():
     """Inicia el InsultBroadcaster que ya maneja la conexión y la cola RabbitMQ"""
-    broadcaster_process = subprocess.Popen(["python3", os.path.join(BASE_DIR, "InsultBroadcaster.py")])
+    broadcaster_process = subprocess.Popen(
+        ["python3", os.path.join(BASE_DIR, "InsultBroadcaster.py")],
+        stdout=subprocess.PIPE,  # Redirige la salida estándar
+        stderr=subprocess.PIPE   # Redirige la salida de errores
+    )
     return broadcaster_process
 
 def start_receiver():
-    """Inicia el consumidor que escucha los insultos de RabbitMQ"""
-    receiver_process = subprocess.Popen(["python3", os.path.join(BASE_DIR, "InsultConsumer.py")])
-    return receiver_process
+    """Inicia el receiver del consumidor InsultConsumer"""
+    receiver = InsultConsumer.InsultConsumer()
+    receiver.run()
 
 def start_filter():
-    """Inicia el servicio de filtrado"""
-    filter_process = subprocess.Popen(["python3", os.path.join(BASE_DIR, "InsultFilter.py")])
-    return filter_process
+    """Inicia el filter"""
+    filter = InsultFilter.InsultFilter()
+    filter.run()
 
-def connect_to(name):
-    """Conecta a un servicio XMLRPC"""
-    ns = ServerProxy("http://localhost:8000")
-    uri = ns.lookup(name)
-    return ServerProxy(uri)
 
 # ================================
 # Función para realizar el test de carga
@@ -69,11 +66,13 @@ def stress_test(task_function, num_requests):
     return duration
 
 def producer_task(i):
+    """Tarea del productor que envía insultos"""
     producer = InsultProducer.InsultProducer()
     insult = f"StressInsult{i}"
     producer.send_insult(insult)
 
 def filter_task(i):
+    """Tarea de filtrado que llama al servicio de filtrado"""
     filter_client = ServerProxy(FILTER_URL)
     text = f"This is a test StressInsult message {i}"
     filter_client.filtrar(text)
@@ -84,7 +83,7 @@ def filter_task(i):
 
 def export_results_txt(results):
     with open('dynamic_scaling_results.txt', 'w') as f:
-        f.write("Peticiones\tNodos_Consumer\tNodos_Broadcaster\tNodos_Filter\tTiempo_InsultService (s)\tSpeedup_InsultService\tTiempo_FilterService (s)\tSpeedup_FilterService\tMensajes_por_segundo\n")
+        f.write("Peticiones\tNodos_Consumer\tNodos_Broadcaster\tNodos_Filter\tTiempo_InsultService (s)\tTiempo_FilterService (s)\tMensajes_por_segundo\n")
 
         for i in range(len(results['requests'])):
             peticiones = results['requests'][i]
@@ -93,69 +92,77 @@ def export_results_txt(results):
             filter_nodes = results['nodes_filter'][i]
             insult_time = results['InsultService_time'][i]
             filter_time = results['FilterService_time'][i]
-            speedup_insult = results['InsultService_time'][0] / insult_time if insult_time > 0 else 0
-            speedup_filter = results['FilterService_time'][0] / filter_time if filter_time > 0 else 0
             messages_per_second = results['Messages_per_second'][i]
 
-            f.write(f"{peticiones}\t{consumer_nodes}\t{broadcaster_nodes}\t{filter_nodes}\t{insult_time:.4f}\t{speedup_insult:.2f}\t{filter_time:.4f}\t{speedup_filter:.2f}\t{messages_per_second:.2f}\n")
+            f.write(f"{peticiones}\t{consumer_nodes}\t{broadcaster_nodes}\t{filter_nodes}\t{insult_time:.4f}\t{filter_time:.4f}\t{messages_per_second:.2f}\n")
 
-def calculate_nodes(num_requests):
-    """Calcula el número de nodos necesario según las peticiones"""
-    nodes_needed = num_requests // 100  # Por ejemplo, cada nodo puede manejar 100 peticiones
-    if num_requests % 100 != 0:
-        nodes_needed += 1
-    return min(nodes_needed, MAX_NODES)  # Limitar a un máximo de nodos definidos
+
+def calculate_nodes(num_requests, total_time, processing_time, worker_capacity):
+    # Calculamos la tasa de llegada de mensajes (lambda)
+    lambda_rate = num_requests / total_time  # Número de peticiones por segundo
+    
+    # Aplicamos la fórmula: N = ceil((lambda * T) / C)
+    num_nodes = (lambda_rate * processing_time) / worker_capacity
+    
+    # Redondeamos hacia arriba si no es un número entero
+    return int(num_nodes) if num_nodes == int(num_nodes) else int(num_nodes) + 1
+
+
+def suppress_output():
+    sys.stdout = open(os.devnull, 'w')
+    sys.stderr = open(os.devnull, 'w')
+
 
 def run_dynamic_scaling_test():
-    num_requests = 500
-    while num_requests <= MAX_REQUESTS:
-        for num_nodes in range(1, calculate_nodes(num_requests) + 1):
-            processes = []
+    processing_time = 0.1  # Tiempo de procesamiento por petición en segundos
+    worker_capacity = 10  # Capacidad de un trabajador en mensajes por segundo
+    total_time = 20
+    suppress_output()
+    for n_requests in N_REQUESTS:
+        print(f"Realizando prueba con {n_requests} peticiones")
 
-            # Iniciar el broadcaster
-            broadcaster_process = start_broadcaster()
+        num_nodes = calculate_nodes(n_requests, total_time, processing_time, worker_capacity)
+        processes = []
+
+        # Iniciar el broadcaster en procesos independientes
+        for _ in range(num_nodes):
+            broadcaster_process = Process(target=start_broadcaster)
+            broadcaster_process.start()
             processes.append(broadcaster_process)
 
-            # Iniciar los consumers y filters
-            for _ in range(num_nodes):
-                receiver_process = start_receiver()
-                processes.append(receiver_process)
+        # Iniciar los consumidores y filtros en procesos independientes
+        for _ in range(num_nodes):
+            receiver_process = Process(target=start_receiver)
+            receiver_process.start()
+            processes.append(receiver_process)
 
-            for _ in range(num_nodes):
-                filter_process = start_filter()
-                processes.append(filter_process)
+        for _ in range(num_nodes):
+            filter_process = Process(target=start_filter)
+            filter_process.start()
+            processes.append(filter_process)
 
-            # Tiempo prudencial para que todo se inicie correctamente
-            time.sleep(5)
+        # Tiempo prudencial para que todo se inicie correctamente
+        time.sleep(5)
 
-            # Generar el insulto inicial
-            producer = connect_to("insult.producer")
-            producer.send_insult("StressInsult")
-            time.sleep(1)
+        # Realizar el test de las peticiones
+        insult_service_time = stress_test(producer_task, n_requests)
+        filter_service_time = stress_test(filter_task, n_requests)
 
-            # Realizar el test de las 500 peticiones
-            insult_service_time = stress_test(producer_task, num_requests)
-            filter_service_time = stress_test(filter_task, num_requests)
+        # Guardar los resultados
+        results['requests'].append(n_requests)
+        results['nodes_consumer'].append(num_nodes)
+        results['nodes_broadcaster'].append(num_nodes)
+        results['nodes_filter'].append(num_nodes)
+        results['InsultService_time'].append(insult_service_time)
+        results['FilterService_time'].append(filter_service_time)
+        results['Messages_per_second'].append(n_requests / (insult_service_time + filter_service_time))
 
-            # Guardar los resultados
-            results['requests'].append(num_requests)
-            results['nodes_consumer'].append(num_nodes)
-            results['nodes_broadcaster'].append(num_nodes)
-            results['nodes_filter'].append(num_nodes)
-            results['InsultService_time'].append(insult_service_time)
-            results['FilterService_time'].append(filter_service_time)
-            results['Messages_per_second'].append(num_requests / (insult_service_time + filter_service_time))
-
-            # Terminar todos los procesos
-            for process in processes:
-                process.terminate()
-                process.join()
+        # Terminar todos los procesos
+        for process in processes:
+            process.terminate()
+            process.join()
 
         export_results_txt(results)
-
-        # Aumentar el número de peticiones para la siguiente iteración
-        num_requests += INCREMENT
-
 
 if __name__ == "__main__":
     run_dynamic_scaling_test()
