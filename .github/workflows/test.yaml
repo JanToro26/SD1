@@ -35,6 +35,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest pytest-cov
           pip install Pyro4==4.81
+          pip install pika
 
       # Step 4: Install system dependencies for macOS
       - name: Install system dependencies on macOS
