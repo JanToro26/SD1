@@ -3,7 +3,7 @@ name: CI Tests
 on:
   push:
     branches:
-      - '**' 
+      - '**'
   pull_request:
     branches:
       - '**'
@@ -21,44 +21,55 @@ jobs:
     services:
       rabbitmq:
         image: rabbitmq:management
-        options: --health-cmd="curl --silent --fail http://localhost:15672/api/healthchecks || exit 1"  # Cambiar la URL de healthcheck
         ports:
-          - 5672:5672  # RabbitMQ AMQP port
+          - 5672:5672  # RabbitMQ port
           - 15672:15672  # RabbitMQ management UI
+        options: --health-cmd="curl --silent --fail http://localhost:15672/api/healthcheck || exit 1" \
+                 --health-timeout=30s --health-retries=5 --health-start-period=15s --health-interval=5s
+        environment:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
 
     steps:
+      # Step 1: Checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Step 2: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
+      # Step 3: Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pytest pytest-cov
           pip install Pyro4==4.81
 
+      # Step 4: Install system dependencies for macOS
       - name: Install system dependencies on macOS
         if: runner.os == 'macOS'
         run: |
           brew install libffi
 
+      # Step 5: Start Pyro4 Name Server
       - name: Start Pyro4 Name Server
         run: |
           pkill -f pyro4-ns || true
-          pyro4-ns &  # Start Pyro4 Name Server in the background
-          sleep 15  # Give it time to initialize
+          pyro4-ns &
+          sleep 15
 
+      # Step 6: Wait for RabbitMQ to be ready
       - name: Wait for RabbitMQ to be ready
         run: |
-          while ! curl --silent --fail http://localhost:15672/api/healthchecks; do  # Wait for RabbitMQ's healthcheck
+          while ! curl --silent --fail http://localhost:15672; do
             echo "Waiting for RabbitMQ to be ready..."
-            sleep 2
+            sleep 5
           done
 
+      # Step 7: Run tests with coverage
       - name: Run tests with coverage
         run: |
           pytest tests/
