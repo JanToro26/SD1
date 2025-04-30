@@ -12,8 +12,5 @@ Combination of the four initial SD Labs for the first assignment
     - InsultFilter: Reads strings from a queue (work_queue) replacing insults with CENSORED. To be able to stay updated, it's subscribed to a channel (insult_channel)
 
 TODO: 
-    - REDIS: Remove Consumer and Producer, used as a template
-    - RabbitMQ: Remove helloWorld.py. Implement TextProducer, InsultBroadcaster, InsultFilter, InsultConsumer, InsultProducer, InsultReceiver
-    - PyRO: Remove introclient, introserver, observer, pyroclient, pyroserver, subject_client, subject. Implement TextProducer, InsultBroadcaster, InsultFilter, InsultConsumer, InsultProducer, InsultReceiver.
-    - XMLRPC: Tests and delete Lab2 folder, I presume.
+    - RabbitMQ: Implement *TextProducer, *InsultBroadcaster, *InsultFilter, *InsultConsumer, *InsultProducer, *InsultReceiver
     - All: Do the getAllArticles fuction
