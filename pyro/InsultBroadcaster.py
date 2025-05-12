@@ -42,7 +42,7 @@ if __name__ == "__main__":
     daemon = Pyro4.Daemon()  
     ns = Pyro4.locateNS()  # Connecta al Name Server de Pyro
     uri = daemon.register(InsultManager())  # Registra la instància de la classe
-    ns.register("insult.broadcaster", uri)  # Dona-li un nom per trobar-lo fàcilment
+    ns.register("insult.broadcaster", uri)  # Se li dona nom
 
     #print("Servidor Pyro4 llest. URI:", uri)
     daemon.requestLoop()

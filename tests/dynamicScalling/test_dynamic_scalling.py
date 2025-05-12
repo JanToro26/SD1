@@ -7,15 +7,15 @@ from concurrent.futures import ThreadPoolExecutor
 import subprocess
 from xmlrpc.client import ServerProxy
 
-# Configuración del path
+# Configuració del path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../dynamicScalling'))
 from dynamicScalling import InsultProducer, InsultConsumer, InsultBroadcaster, InsultFilter
 
 FILTER_URL = "http://localhost:8002/RPC2"
 
-N_REQUESTS = [500, 1000, 2000, 5000, 10000, 500]  # Peticiones de prueba
-MAX_NODES = 10  # Número máximo de nodos a utilizar
+N_REQUESTS = [500, 1000, 2000, 5000, 10000, 500]  # Peticions de prueba
+MAX_NODES = 10  # Número màxim de nodos a utilitzar
 
 results = {
     'requests': [],
@@ -33,11 +33,11 @@ results = {
 # ================================
 
 def start_broadcaster():
-    """Inicia el InsultBroadcaster que ya maneja la conexión y la cola RabbitMQ"""
+    """Inicia el InsultBroadcaster que ja controla la connexió y la cua RabbitMQ"""
     broadcaster_process = subprocess.Popen(
         ["python3", os.path.join(BASE_DIR, "InsultBroadcaster.py")],
-        stdout=subprocess.PIPE,  # Redirige la salida estándar
-        stderr=subprocess.PIPE   # Redirige la salida de errores
+        stdout=subprocess.PIPE,  # Redirigeix la sortida estándar
+        stderr=subprocess.PIPE   # Redirigeix la sortida de errors
     )
     return broadcaster_process
 
@@ -53,7 +53,7 @@ def start_filter():
 
 
 # ================================
-# Función para realizar el test de carga
+# Funció per a realitzar el test de càrrega
 # ================================
 
 def stress_test(task_function, num_requests):
@@ -66,19 +66,19 @@ def stress_test(task_function, num_requests):
     return duration
 
 def producer_task(i):
-    """Tarea del productor que envía insultos"""
+    """Tasca del productor que envia insults"""
     producer = InsultProducer.InsultProducer()
     insult = f"StressInsult{i}"
     producer.send_insult(insult)
 
 def filter_task(i):
-    """Tarea de filtrado que llama al servicio de filtrado"""
+    """Tasca de filtrat que crida al servei de filtrat"""
     filter_client = ServerProxy(FILTER_URL)
     text = f"This is a test StressInsult message {i}"
     filter_client.filtrar(text)
 
 # ================================
-# Función para exportar los resultados a un archivo
+# Funció per a exportar els resultats a un arxiu
 # ================================
 
 def export_results_txt(results):
@@ -98,13 +98,13 @@ def export_results_txt(results):
 
 
 def calculate_nodes(num_requests, total_time, processing_time, worker_capacity):
-    # Calculamos la tasa de llegada de mensajes (lambda)
-    lambda_rate = num_requests / total_time  # Número de peticiones por segundo
+    # Calcula la taxa d'arribada' de missatges (lambda)
+    lambda_rate = num_requests / total_time  # Número de peticions per segon
     
-    # Aplicamos la fórmula: N = ceil((lambda * T) / C)
+    # Aplica la fórmula: N = ceil((lambda * T) / C)
     num_nodes = (lambda_rate * processing_time) / worker_capacity
     
-    # Redondeamos hacia arriba si no es un número entero
+    # Arrodonir cap dalt si no és un número sencer
     return int(num_nodes) if num_nodes == int(num_nodes) else int(num_nodes) + 1
 
 
@@ -114,23 +114,23 @@ def suppress_output():
 
 
 def run_dynamic_scaling_test():
-    processing_time = 0.1  # Tiempo de procesamiento por petición en segundos
-    worker_capacity = 10  # Capacidad de un trabajador en mensajes por segundo
+    processing_time = 0.1  # Temps de processament per petició en segons
+    worker_capacity = 10  # Capacitat de un traeballador en missatges per segon
     total_time = 20
     suppress_output()
     for n_requests in N_REQUESTS:
-        print(f"Realizando prueba con {n_requests} peticiones")
+        print(f"Realitzant prova amb {n_requests} peticions")
 
         num_nodes = calculate_nodes(n_requests, total_time, processing_time, worker_capacity)
         processes = []
 
-        # Iniciar el broadcaster en procesos independientes
+        # Iniciar el broadcaster en processos independents
         for _ in range(num_nodes):
             broadcaster_process = Process(target=start_broadcaster)
             broadcaster_process.start()
             processes.append(broadcaster_process)
 
-        # Iniciar los consumidores y filtros en procesos independientes
+        # Iniciar els consumidors i filtres en processos independents
         for _ in range(num_nodes):
             receiver_process = Process(target=start_receiver)
             receiver_process.start()
@@ -141,14 +141,14 @@ def run_dynamic_scaling_test():
             filter_process.start()
             processes.append(filter_process)
 
-        # Tiempo prudencial para que todo se inicie correctamente
+        # Temps prudencial per a que tot s'iniciï correctament
         time.sleep(5)
 
-        # Realizar el test de las peticiones
+        # Realitzar el test de las peticions
         insult_service_time = stress_test(producer_task, n_requests)
         filter_service_time = stress_test(filter_task, n_requests)
 
-        # Guardar los resultados
+        # Guardar els resultats
         results['requests'].append(n_requests)
         results['nodes_consumer'].append(num_nodes)
         results['nodes_broadcaster'].append(num_nodes)
@@ -157,7 +157,7 @@ def run_dynamic_scaling_test():
         results['FilterService_time'].append(filter_service_time)
         results['Messages_per_second'].append(n_requests / (insult_service_time + filter_service_time))
 
-        # Terminar todos los procesos
+        # Terminar tots els processos
         for process in processes:
             process.terminate()
             process.join()

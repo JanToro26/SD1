@@ -13,8 +13,6 @@ class InsultFilter:
         # Conexión a RabbitMQ
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost', port=5672))
         self.channel = self.connection.channel()
-
-        # Declara la cola para los insultos
         self.channel.queue_declare(queue='insult_channel')
 
     def callback(self, ch, method, properties, body):
@@ -24,7 +22,7 @@ class InsultFilter:
         self.insult_list.append(insult)
 
     def filtrar(self, text):
-        """Filtra los insultos en el texto"""
+        """Filtra los insults en el text"""
         with self.lock:
             insults = self.insult_list.copy()
 
@@ -40,18 +38,18 @@ class InsultFilter:
         return filtered_text
 
     def get_all_filtered(self):
-        """Devuelve todos los textos filtrados"""
+        """Retorna tots els textos filtrats"""
         with self.lock:
             return self.filtered_list
 
     def get_all_insults(self):
-        """Devuelve todos los insultos almacenados"""
+        """Retorna tots els insults emmagatzemats"""
         with self.lock:
             return self.insult_list
 
     def run(self):
-        """Inicia el consumidor de RabbitMQ y el servidor XML-RPC en hilos separados"""
-        # Iniciar el hilo de RabbitMQ para escuchar los insultos
+        """Inicia el consumidor de RabbitMQ y el servidor XML-RPC en fils separados"""
+        # Iniciar el fil de RabbitMQ para escoltar los insults
         rabbitmq_thread = threading.Thread(target=self.listen_rabbitmq)
         rabbitmq_thread.start()
 
@@ -59,13 +57,12 @@ class InsultFilter:
         self.start_xmlrpc_server()
 
     def listen_rabbitmq(self):
-        """Escuchar los insultos de RabbitMQ"""
         self.channel.basic_consume(queue='insult_channel', on_message_callback=self.callback, auto_ack=True)
-        print("[Filter] Esperando insultos de RabbitMQ...")
+        print("[Filter] Esperant insults de RabbitMQ...")
         self.channel.start_consuming()
 
     def start_xmlrpc_server(self):
-        """Inicia el servidor XML-RPC para el filtro"""
+        """Inicia el servidor XML-RPC pel filtro"""
         class RequestHandler(SimpleXMLRPCRequestHandler):
             rpc_paths = ('/RPC2',)
 
@@ -75,7 +72,7 @@ class InsultFilter:
             server.register_function(self.get_all_filtered, 'get_all_filtered')
             server.register_function(self.get_all_insults, 'get_all_insults')
 
-            print("[Filter] Iniciando servidor XML-RPC...")
+            print("[Filter] Iniciant servidor XML-RPC...")
             server.serve_forever()
 
 if __name__ == "__main__":

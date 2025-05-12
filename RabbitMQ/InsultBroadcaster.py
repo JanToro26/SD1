@@ -1,22 +1,35 @@
 #!/usr/bin/env python
 
-import pika, redis, random, time
+import redis
+import pika
+import random
+import time
 
-# Connect to the existing insults list using Redis
-client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
-insult_list = "insult_list"
+class InsultBroadcaster:
+    def __init__(self):
+        """Inicialitza la connexió a Redis i els paràmetres per a la transmissió."""
+        self.client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+        # Connect to RabbitMQ
+        connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+        self.channel = connection.channel()
+        #channel_name = "insult_channel"
 
-# Connect to RabbitMQ
-connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-channel = connection.channel()
+        # Declare a fanout exchange
+        self.channel.exchange_declare(exchange='insult_canal', exchange_type='fanout')
+        self.insult_list = "insult_list"
+        self.delay = 5
 
-# Declare a fanout exchange
-channel.exchange_declare(exchange='insult_canal', exchange_type='fanout')
+    def broadcast(self):
+        """Publica insults aleatoris de Redis de manera contínua."""
+        while True:
+            # Recupera una llista d'insults de Redis
+            insults = self.client.lrange(self.insult_list, 0, -1)
+            if insults:
+                insult = random.choice(insults)  # Escull un insult aleatori
+                self.channel.basic_publish(exchange='insult_canal', routing_key='', body=insult)
+                print(f"Published: {insult}")
+            time.sleep(self.delay)  # Simula un retard entre els missatges
 
-# Publish a message
-while True:
-    cua = client.lrange(insult_list, 0, -1)  # Obtenir la llista de Redis amb els insults
-    message = random.choice(cua)
-    channel.basic_publish(exchange='insult_canal', routing_key='', body=message)
-    print(f" [x] Sent '{message}'")
-    time.sleep(5)
+if __name__ == "__main__":
+    broadcaster = InsultBroadcaster()  # Inicialitza l'objecte
+    broadcaster.broadcast()  # Inicia la transmissió

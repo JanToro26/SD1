@@ -1,0 +1,6 @@
+Número de peticions	Temps InsultService (s)	TempsFilterService (s)
+100	0.0122	0.0089
+200	0.0144	0.0106
+500	0.0086	0.0103
+1000	0.0150	0.0145
+2000	0.0298	0.0279

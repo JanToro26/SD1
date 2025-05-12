@@ -1,6 +1,6 @@
 Combination of the four initial SD Labs for the first assignment
 
-5 files per technology which share the same purpose
+6 files per technology which share the same purpose
 
     - InsultProducer: Produce the insults that will be on the existing insults list (INSULTS)
     - InsultConsumer: Pop insults from the queue and put in the list (INSULTS) if they are not on that yet.
@@ -11,6 +11,9 @@ Combination of the four initial SD Labs for the first assignment
     - TextProducer: Pushes text periodically into a queue (work_queue), read later by InsultFilter, and gets the censored text returned.
     - InsultFilter: Reads strings from a queue (work_queue) replacing insults with CENSORED. To be able to stay updated, it's subscribed to a channel (insult_channel)
 
-TODO: 
-    - RabbitMQ: Implement *TextProducer, *InsultBroadcaster, *InsultFilter, *InsultConsumer, *InsultProducer, *InsultReceiver
-    - All: Do the getAllArticles fuction
+Project is distributed in several directories.
+    -> The 4 technologies are inside a directory with their own name. 
+    -> A 5th directory contains the implementation of the services using a combination of two technologies, in our case XML-RPC and RabbitMQ
+    -> A tests directory contains the programmes used for single, multi-node and dynamic scaling tests. Their outputs are stored in .txt files
+        stored alongside the other main directories.
+    -> A hidden directory contains the test.yaml used for testing both XML-RPC and Pyro

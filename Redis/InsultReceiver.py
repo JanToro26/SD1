@@ -11,3 +11,7 @@ print(f"Subscribed to {channel_name}, waiting for messages...")
 for message in pubsub.listen():
     if message["type"] == "message":
         print(f"Received: {message['data']}")
+
+
+
+        

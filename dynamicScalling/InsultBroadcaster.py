@@ -8,34 +8,32 @@ class InsultBroadcaster:
         self.xmlrpc_host = xmlrpc_host
         self.xmlrpc_port = xmlrpc_port
         
-        # Establece la conexión con RabbitMQ
+        # Connexió i cua de RabbitMQ
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.host, port=self.port))
         self.channel = self.connection.channel()
-
-        # Declara la cola para los insultos en RabbitMQ
         self.channel.queue_declare(queue='insult_channel')
 
-        # Lista de insultos
+        # Lista de insults
         self.insult_list = []
 
     def add_insult(self, insult):
-        """Añade un insulto a la lista y lo envía a los consumidores a través de RabbitMQ"""
+        """Afegeix un insult a la lista y lo envía a los consumidors a través de RabbitMQ"""
         self.insult_list.append(insult)
         print(f"[Broadcaster] Insulto añadido: {insult}")
 
-        # Publica el insulto a la cola
+        # Publica el insult a la cola
         self.channel.basic_publish(exchange='',
                                   routing_key='insult_channel',
                                   body=insult)
-        print(f"[Broadcaster] Insulto enviado a la cola de RabbitMQ: {insult}")
+        print(f"[Broadcaster] Insult enviat a la cua de RabbitMQ: {insult}")
         return f"L'insult {insult} ha estat afegit."
 
     def get_insults(self):
-        """Devuelve la lista de insultos"""
+        """Retorna la lista de insults"""
         return self.insult_list if self.insult_list else []
 
     def run(self):
-        """Inicia el servicio del broadcaster que escuchará peticiones XML-RPC"""
+        """Inicia el servei del broadcaster que escoltarà peticions XML-RPC"""
         class RequestHandler(SimpleXMLRPCRequestHandler):
             rpc_paths = ('/RPC2',)
 
