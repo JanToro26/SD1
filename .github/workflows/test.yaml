@@ -54,7 +54,9 @@ jobs:
         run: |
           docker pull redis
           docker run --name my-redis -d -p 6379:6379 redis
-          docker exec -it my-redis redis-cli
+          # Test Redis with PING command
+          docker exec -i my-redis redis-cli PING
+
       
       # Step 7: Start Pyro4 Name Server
       - name: Start Pyro4 Name Server
